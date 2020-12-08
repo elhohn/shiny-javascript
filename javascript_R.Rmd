@@ -1,0 +1,92 @@
+---
+title: "Javascript in Shiny"
+author: "Elliot Hohn"
+date: "12/7/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+library(plotly) ##Must use devtools::install_github("ropensci/plotly")
+library(shiny)
+library(DT)
+library(ggforce)
+library(htmlwidgets)
+library(sf)
+```
+
+### The challenge
+
+Shiny gets crapped on a lot because it can be really slow and clunky. One reason for this is the server-side rendering, so complex plots or maps, 
+or just apps with a lot moving parts move really slowly. Javascript, on the other hand, runs in the browser, which allows for fast interactive 
+visualizations.
+
+So instead of throwing out the data viz baby with the bathwateR, why not use JavaScript with R to get the best of both worlds?
+
+
+### Load some data
+This data was generated with the program design tab in the Solano shiny app. The program is a $4 million dollar attempt to maximize benefits to GDEs.
+```{r}
+results <- readRDS(file = "data/results_jitter_df.rds")
+fieldIds <- readRDS(file = "data/results_chosenIds.rds")
+df_onlyTheBest <- readRDS(file = "data/df_onlyTheBest.rds")
+```
+
+### The goal
+The dataset includes BasinScout results for 900 simulations. Each simulation is an optimized "program" from within a randomly selected
+pool of ag fields. Each program has a total/sum value for the following variables:
+
+* cost
+* nitrogen runoff
+* phosphorus runoff
+* sediment runoff
+* infiltration volume for storage
+* infiltration volume for GDE support
+* irrigation volume from groundwater
+* irrigation volume from surface water
+
+I want to be able to explore all of this data intuitively without requiring 50 plots and 50 maps.
+
+
+### Map plus scatter plot - `sf` and base R
+
+```{r, figures-side, fig.show="hold", out.width="50%"}
+p <- results[results$variable == 'Change in infiltration for GDE support',]
+plot(p$recruitment, p$value,
+     xlab = 'Recruitment success rate',
+     ylab = 'Infiltation volume, ft per year',
+     main = 'Change in infiltration for GDEs by recruitment rate')
+
+ids <- fieldIds[[55]] # choose a random simulation
+m <- df_onlyTheBest[df_onlyTheBest$fieldId %in% ids,]
+m <- st_sf(m)
+plot(m['netPresentCost'], main = 'Fields in a random program simulation')
+#plot(d$value, d$recruitment)
+```
+
+### Faceted plots with `ggplot`
+
+`ggplot2` allows you to make really nice plots quickly with only a few lines of code. This is great for a static deliverable, 
+but how do you squeeze this into a dashboard? How do you allow for deeper digging?
+
+```{r, fig.width=11, fig.height=8}
+p2 <- ggplot(results, aes(x = recruitment, y = value, color = recruitment)) +
+  geom_point(size = 3, alpha = 0.2) +
+  geom_smooth(color = 'grey15', alpha = .2, method = 'lm') +
+  scale_color_gradient(low = 'grey85', high = 'darkgreen') +
+  facet_wrap(~ variable, nrow = 3, scales = "free") +
+  theme_minimal() +
+  theme(legend.position="bottom") +
+  ggtitle("Impacts of $4 million program for GDEs at varying recruitment success rates")
+p2
+```
+
+### Convert ggplot to `plotly`?
+R is full of wrappers for JavaScript APIs, including plotly, which is probably the easiest of them all.
+```{r, fig.width=11, fig.height=8}
+ggplotly(p2)
+```
