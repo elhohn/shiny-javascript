@@ -88,7 +88,7 @@ to listen for clicks, so if you want to add a button ("Add item to cart" for exa
 
 In TFT's case, Maddee and I wanted to be able to add a "Zoom to field on map" button for every row in a table, so we wrote a function in our server code (in R) to iteratively generate a button object with a unique ID for every row, plus a simple jQuery function to watch for button clicks and communicate the button id back to shiny.
 
-Here's the function for creating a each action button:
+Here's the function for creating (the inputs for) an action button:
 ```{r message=FALSE, warning=FALSE, eval=FALSE}
 buttonInput <- function(FUN, len, id, ...) {
     inputs <- character(len)
@@ -161,7 +161,9 @@ observeEvent(input$js.button_clicked, {
 
 [(Grand View Explorer shiny app)](https://thefreshwatertrust.shinyapps.io/grand_view_explorer/)
 
-### Load some data
+
+### What else?
+#### Load some data
 This data was generated with the program design tab in the Solano shiny app. The program is a $4 million dollar attempt to maximize benefits to GDEs.
 ```{r}
 results <- readRDS(file = "data/results_jitter_df.rds")
